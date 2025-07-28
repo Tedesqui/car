@@ -10,7 +10,7 @@ const openai = new OpenAI();
 // --- ATUALIZAÇÃO DE CORS ---
 // Lista de domínios permitidos
 const whitelist = [
-    'https://SEU_USUARIO.github.io', // Substitua pelo seu URL do GitHub Pages
+    'https://tedesqui.github.io/car/', // Substitua pelo seu URL do GitHub Pages
     'http://localhost:5500', // Permite testes locais
     'http://127.0.0.1:5500'  // Permite testes locais
 ];
