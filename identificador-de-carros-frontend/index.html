@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Identificador de Carros com IA</title>
+    <style>
+        body, html { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: black; color: white; overflow: hidden; }
+        video, canvas { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: 0; }
+        canvas { display: none; }
+        #ui-container { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 2; }
+        
+        #controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background: linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0));
+        }
+        
+        button, a.button { 
+            padding: 12px 20px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            display: inline-flex;
+            align-items: center; 
+            gap: 8px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            text-decoration: none;
+            text-align: center;
+        }
+        button:hover:not(:disabled), a.button:hover { background-color: #0056b3; transform: translateY(-2px); }
+        button:disabled { background: #555; cursor: not-allowed; opacity: 0.7; }
+        
+        #output-panel { background: rgba(0,0,0,0.9); padding: 20px; max-height: 85vh; overflow-y: auto; box-sizing: border-box; border-top: 1px solid #444; text-align: center; }
+        #result-content p { margin: 10px 0; font-size: 1.2em; }
+        #result-content strong { color: #00aaff; }
+
+        a.button.buy-button {
+            background-color: #28a745; /* Verde */
+            margin-top: 15px;
+        }
+        
+        button.retry-button {
+            background-color: #6c757d; /* Cinza */
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas"></canvas>
+    <div id="ui-container">
+        <div id="controls">
+            <button id="zoomBtn">🔍 Zoom: 1x</button>
+            <button id="captureBtn">📷 Identificar Carro</button>
+        </div>
+        <div id="output-panel">
+            <div id="status-text">🚗 Aponte a câmera para o carro e capture.</div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById("video");
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        const outputPanel = document.getElementById("output-panel");
+        const controlsDiv = document.getElementById("controls");
+        const zoomBtn = document.getElementById("zoomBtn");
+        const captureBtn = document.getElementById("captureBtn");
+        let mediaTrack, currentZoom = 1;
+        const zoomLevels = [1, 1.5, 2, 3];
+
+        const carDatabase = {
+            "honda civic": "https://www.honda.com.br/automoveis/civic",
+            "toyota corolla": "https://www.toyota.com.br/modelos/corolla/",
+            "volkswagen gol": "https://www.vw.com.br/pt/modelos/gol.html",
+            "fiat strada": "https://strada.fiat.com.br/",
+            "chevrolet onix": "https://www.chevrolet.com.br/carros/onix",
+            "jeep renegade": "https://renegade.jeep.com.br/",
+            "porsche 911": "https://www.porsche.com/brazil/pt/models/911/"
+            // Adicione mais modelos e links aqui
+        };
+
+        async function startCamera() {
+            try {
+                const constraints = { video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } } };
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                mediaTrack = stream.getVideoTracks()[0];
+                const capabilities = mediaTrack.getCapabilities();
+                if (!capabilities.zoom || capabilities.zoom.max <= 1) {
+                    zoomBtn.style.display = 'none';
+                }
+            } catch (err) {
+                console.error("Erro ao iniciar a câmera:", err);
+                outputPanel.innerHTML = `<div id="status-text">❌ Erro ao acessar a câmera. Verifique as permissões.</div>`;
+            }
+        }
+
+        function toggleZoom() {
+            if (!mediaTrack) return;
+            const capabilities = mediaTrack.getCapabilities();
+            if (!capabilities.zoom) return;
+            const currentIndex = zoomLevels.indexOf(currentZoom);
+            currentZoom = zoomLevels[(currentIndex + 1) % zoomLevels.length];
+            if (currentZoom > capabilities.zoom.max) currentZoom = zoomLevels[0];
+            mediaTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] });
+            zoomBtn.innerText = `🔍 Zoom: ${currentZoom}x`;
+        }
+
+        function resetUI() {
+            canvas.style.display = 'none';
+            video.style.display = 'block';
+            outputPanel.innerHTML = `<div id="status-text">🚗 Aponte a câmera para o carro e capture.</div>`;
+            controlsDiv.style.display = 'flex';
+            captureBtn.disabled = false;
+        }
+
+        async function captureAndIdentify() {
+            captureBtn.disabled = true;
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            video.style.display = 'none';
+            canvas.style.display = 'block';
+            controlsDiv.style.display = 'none';
+            outputPanel.innerHTML = `<div id="status-text">🧠 Identificando modelo...</div>`;
+
+            try {
+                const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                
+                // --- IMPORTANTE: ATUALIZE ESTA LINHA ---
+                // Substitua a URL abaixo pela URL pública do seu backend na Vercel.
+                const backendUrl = 'https://SEU-PROJETO-BACKEND.vercel.app/api/identify-car';
+                // ------------------------------------------
+
+                const response = await fetch(backendUrl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ image: imageDataUrl })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || `Erro na API: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                displayResult(data.model);
+
+            } catch (err) {
+                console.error("Erro na identificação:", err);
+                outputPanel.innerHTML = `
+                    <div id="status-text">❌ Erro ao identificar: ${err.message}</div>
+                    <button class="retry-button" onclick="resetUI()">Tentar Novamente</button>
+                `;
+            }
+        }
+        
+        function displayResult(modelName) {
+            if (!modelName) {
+                outputPanel.innerHTML = `
+                    <div id="result-content">
+                        <h2>🤔 Modelo não reconhecido</h2>
+                        <p>Não foi possível identificar o carro. Tente uma foto com melhor iluminação e enquadramento.</p>
+                    </div>
+                    <button class="retry-button" onclick="resetUI()">Identificar Outro Carro</button>
+                `;
+                return;
+            }
+            
+            const lowerCaseModel = modelName.toLowerCase();
+            const purchaseUrl = carDatabase[lowerCaseModel];
+            
+            let htmlResult = `
+                <div id="result-content">
+                    <h2>✅ Modelo Identificado!</h2>
+                    <p>Carro: <strong>${modelName}</strong></p>
+            `;
+
+            if (purchaseUrl) {
+                htmlResult += `<a href="${purchaseUrl}" target="_blank" class="button buy-button">🛒 Ver Preço ou Comprar</a>`;
+            } else {
+                htmlResult += `<p>ℹ️ Site de compra para este modelo não cadastrado.</p>`;
+            }
+
+            htmlResult += `</div><button class="retry-button" onclick="resetUI()">Identificar Outro Carro</button>`;
+            
+            outputPanel.innerHTML = htmlResult;
+        }
+
+        zoomBtn.addEventListener('click', toggleZoom);
+        captureBtn.addEventListener('click', captureAndIdentify);
+        startCamera();
+    </script>
+</body>
+</html>
