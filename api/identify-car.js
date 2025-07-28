@@ -16,22 +16,21 @@ export default async function handler(request, response) {
   }
   
   // --- PROMPT MODIFICADO ---
-  // Agora pedimos explicitamente por um objeto JSON com duas chaves: "descricao" e "url".
+  // A instrução para fornecer um URL foi removida.
   const prompt = `
     Analise a imagem deste carro.
     Identifique a marca, modelo e ano aproximado.
     Forneça características principais e um fato interessante.
-    Se não for um carro, informe isso.
+    Se não for um carro, informe isso na descrição.
     Formate sua resposta final estritamente como um objeto JSON com duas chaves:
     1. "descricao": uma string contendo todo o texto sobre o carro em português do Brasil.
-    2. "url": uma string contendo um URL válido para o site oficial da fabricante do carro ou uma página confiável sobre o modelo. Se não encontrar um URL, o valor deve ser null.
+    2. "modelo": uma string curta contendo apenas a "Marca Modelo" do carro (ex: "Honda Civic", "Toyota Corolla", "Fiat Strada"). Se não for um carro, o valor deve ser null.
     Não inclua nada na sua resposta além deste objeto JSON.
   `;
 
   try {
     const completion = await openai.chat.completions.create({
       model: "gpt-4-vision-preview",
-      // A OpenAI agora suporta um modo de resposta JSON que garante o formato.
       response_format: { type: "json_object" }, 
       messages: [
         {
@@ -46,15 +45,13 @@ export default async function handler(request, response) {
     });
 
     const aiResultString = completion.choices[0].message.content;
-
-    // --- PARSE DA RESPOSTA JSON DA IA ---
-    // Como pedimos um JSON, agora precisamos interpretá-lo.
     const parsedResult = JSON.parse(aiResultString);
 
-    // Retornamos um objeto JSON para o frontend com a descrição e o URL
+    // --- RESPOSTA ATUALIZADA ---
+    // A chave "url" foi removida da resposta enviada ao frontend.
     return response.status(200).json({
       resultado: parsedResult.descricao,
-      url: parsedResult.url
+      modelo: parsedResult.modelo
     });
 
   } catch (error) {
