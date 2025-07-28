@@ -29,11 +29,11 @@
             border-radius: 8px; 
             cursor: pointer; 
             transition: all 0.2s; 
-            display: inline-flex; /* Alterado para inline-flex */
+            display: inline-flex;
             align-items: center; 
             gap: 8px; 
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            text-decoration: none; /* Para links estilizados como botão */
+            text-decoration: none;
             text-align: center;
         }
         button:hover:not(:disabled), a.button:hover { background-color: #0056b3; transform: translateY(-2px); }
@@ -52,7 +52,6 @@
             background-color: #6c757d; /* Cinza */
             margin-top: 10px;
         }
-
     </style>
 </head>
 <body>
@@ -79,8 +78,6 @@
         let mediaTrack, currentZoom = 1;
         const zoomLevels = [1, 1.5, 2, 3];
 
-        // --- BANCO DE DADOS DE SITES DE CARROS ---
-        // Associe o nome do modelo (em minúsculas) ao URL de compra
         const carDatabase = {
             "honda civic": "https://www.honda.com.br/automoveis/civic",
             "toyota corolla": "https://www.toyota.com.br/modelos/corolla/",
@@ -140,8 +137,12 @@
             try {
                 const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
                 
-                // IMPORTANTE: Esta URL é um exemplo. Você deve criar este endpoint no seu backend.
-                const response = await fetch("/api/identify-car", {
+                // --- IMPORTANTE: ATUALIZE ESTA LINHA ---
+                // Substitua a URL abaixo pela URL pública do seu backend na Vercel.
+                const backendUrl = 'https://SEU-PROJETO-BACKEND.vercel.app/api/identify-car';
+                // ------------------------------------------
+
+                const response = await fetch(backendUrl, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ image: imageDataUrl })
@@ -149,10 +150,10 @@
 
                 if (!response.ok) {
                     const err = await response.json();
-                    throw new Error(err.error || `Erro na API: ${response.status}`);
+                    throw new Error(err.error || `Erro na API: ${response.statusText}`);
                 }
 
-                const data = await response.json(); // Espera-se: { model: "Nome do Carro" }
+                const data = await response.json();
                 displayResult(data.model);
 
             } catch (err) {
