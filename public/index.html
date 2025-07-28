@@ -5,37 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Identificador de Carros com IA</title>
     <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: black;
-            color: white;
-            overflow: hidden;
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: black; 
+            color: white; 
+            overflow: hidden; 
         }
-
-        video, canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            object-fit: cover;
-            z-index: 0;
+        video, canvas { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
+            height: 100vh; 
+            object-fit: cover; 
+            z-index: 0; 
         }
-
-        canvas {
-            display: none;
+        canvas { 
+            display: none; 
         }
-
-        #ui-container {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            z-index: 2;
+        #ui-container { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            width: 100%; 
+            z-index: 2; 
         }
-
+        
         #controls {
             display: flex;
             gap: 15px;
@@ -44,50 +41,47 @@
             padding: 20px;
             background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0));
         }
-
-        button {
-            padding: 12px 20px;
-            font-size: 16px;
-            font-weight: bold;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        
+        button { 
+            padding: 12px 20px; 
+            font-size: 16px; 
+            font-weight: bold; 
+            background-color: #007bff; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); 
         }
-
-            button:hover:not(:disabled) {
-                background-color: #0056b3;
-                transform: translateY(-2px);
-            }
-
-            button:disabled {
-                background: #555;
-                cursor: not-allowed;
-                opacity: 0.7;
-            }
-
-        #output-panel {
-            background: rgba(0,0,0,0.9);
-            padding: 15px;
-            max-height: 85vh;
-            overflow-y: auto;
-            box-sizing: border-box;
-            border-top: 1px solid #444;
+        button:hover:not(:disabled) { 
+            background-color: #0056b3; 
+            transform: translateY(-2px); 
         }
-
-        #car-info {
-            background-color: #2a2a2a;
-            padding: 1rem;
-            border-radius: 6px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            line-height: 1.6;
+        button:disabled { 
+            background: #555; 
+            cursor: not-allowed; 
+            opacity: 0.7; 
+        }
+        #output-panel { 
+            background: rgba(0,0,0,0.9); 
+            padding: 15px; 
+            max-height: 85vh; 
+            overflow-y: auto; 
+            box-sizing: border-box; 
+            border-top: 1px solid #444; 
+        }
+        
+        #car-info { 
+            background-color: #2a2a2a; 
+            padding: 1rem; 
+            border-radius: 6px; 
+            white-space: pre-wrap; 
+            word-wrap: break-word; 
+            line-height: 1.6; 
             font-size: 0.9em;
         }
 
@@ -182,19 +176,19 @@
 
             try {
                 const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-
+                
                 const prompt = `
-                        Identifique o modelo, a marca e o ano aproximado do carro nesta imagem.
-                        Forneça também algumas características principais sobre ele, como tipo de motor, potência e um fato interessante ou uma curiosidade.
-                        Se a imagem não contiver um carro, apenas informe isso de forma amigável.
-                        Responda em português do Brasil, formatado de maneira clara e com títulos para cada seção (Ex: **Marca:**, **Modelo:**, etc.).
-                    `;
-
+                    Identifique o modelo, a marca e o ano aproximado do carro nesta imagem.
+                    Forneça também algumas características principais sobre ele, como tipo de motor, potência e um fato interessante ou uma curiosidade.
+                    Se a imagem não contiver um carro, apenas informe isso de forma amigável.
+                    Responda em português do Brasil, formatado de maneira clara e com títulos para cada seção (Ex: **Marca:**, **Modelo:**, etc.).
+                `;
+                
                 // ========================================================================
                 // ATENÇÃO: SUBSTITUA O URL ABAIXO PELO URL DO SEU PROJETO NA VERCEL
                 // Exemplo: "https://meu-projeto-legal.vercel.app/api/identify-car"
                 // ========================================================================
-                const apiUrl = "https://seu-projeto.vercel.app/api/identify-car";
+                const apiUrl = "https://car-identification.vercel.app/api/identify-car"; 
 
                 if (apiUrl.includes("seu-projeto.vercel.app")) {
                     throw new Error("URL da API não foi configurada. Edite o arquivo index.html.");
@@ -203,9 +197,9 @@
                 const response = await fetch(apiUrl, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
+                    body: JSON.stringify({ 
                         image: imageDataUrl,
-                        prompt: prompt
+                        prompt: prompt 
                     })
                 });
 
