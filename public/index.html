@@ -6,91 +6,36 @@
     <title>Identificador de Carros com IA</title>
     <style>
         body, html { 
-            margin: 0; 
-            padding: 0; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background: black; 
-            color: white; 
-            overflow: hidden; 
+            margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: black; color: white; overflow: hidden; 
         }
         video, canvas { 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100vw; 
-            height: 100vh; 
-            object-fit: cover; 
-            z-index: 0; 
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: 0; 
         }
-        canvas { 
-            display: none; 
-        }
-        #ui-container { 
-            position: fixed; 
-            bottom: 0; 
-            left: 0; 
-            width: 100%; 
-            z-index: 2; 
-        }
-        
+        canvas { display: none; }
+        #ui-container { position: fixed; bottom: 0; left: 0; width: 100%; z-index: 2; }
         #controls {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
+            display: flex; gap: 15px; justify-content: center; align-items: center; padding: 20px;
             background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0));
         }
-        
         button { 
-            padding: 12px 20px; 
-            font-size: 16px; 
-            font-weight: bold; 
-            background-color: #007bff; 
-            color: white; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            transition: all 0.2s; 
-            display: flex; 
-            align-items: center; 
-            gap: 8px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3); 
+            padding: 12px 20px; font-size: 16px; font-weight: bold; background-color: #007bff; color: white; 
+            border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; 
+            align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); 
         }
-        button:hover:not(:disabled) { 
-            background-color: #0056b3; 
-            transform: translateY(-2px); 
-        }
-        button:disabled { 
-            background: #555; 
-            cursor: not-allowed; 
-            opacity: 0.7; 
-        }
+        button.site-link { background-color: #28a745; }
+        button:hover:not(:disabled) { background-color: #0056b3; transform: translateY(-2px); }
+        button.site-link:hover:not(:disabled) { background-color: #1f7a35; }
+        button:disabled { background: #555; cursor: not-allowed; opacity: 0.7; }
         #output-panel { 
-            background: rgba(0,0,0,0.9); 
-            padding: 15px; 
-            max-height: 85vh; 
-            overflow-y: auto; 
-            box-sizing: border-box; 
-            border-top: 1px solid #444; 
+            background: rgba(0,0,0,0.9); padding: 15px; max-height: 85vh; overflow-y: auto; 
+            box-sizing: border-box; border-top: 1px solid #444; 
         }
-        
         #car-info { 
-            background-color: #2a2a2a; 
-            padding: 1rem; 
-            border-radius: 6px; 
-            white-space: pre-wrap; 
-            word-wrap: break-word; 
-            line-height: 1.6; 
-            font-size: 0.9em;
+            background-color: #2a2a2a; padding: 1rem; border-radius: 6px; white-space: pre-wrap; 
+            word-wrap: break-word; line-height: 1.6; font-size: 0.9em;
         }
-
-        .status-text {
-            text-align: center;
-            padding: 20px;
-            font-size: 1.1em;
-            font-weight: 500;
-        }
+        .status-text { text-align: center; padding: 20px; font-size: 1.1em; font-weight: 500; }
     </style>
 </head>
 <body>
@@ -123,20 +68,15 @@
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 video.srcObject = stream;
                 mediaTrack = stream.getVideoTracks()[0];
-                const capabilities = mediaTrack.getCapabilities();
-                if (!capabilities.zoom || capabilities.zoom.max <= 1) {
-                    zoomBtn.style.display = 'none';
-                }
             } catch (err) {
-                console.error("Erro ao iniciar a câmera:", err);
-                outputPanel.innerHTML = `<div class="status-text">❌ Erro ao acessar a câmera. Verifique as permissões do seu navegador.</div>`;
+                outputPanel.innerHTML = `<div class="status-text">❌ Erro ao acessar a câmera.</div>`;
             }
         }
 
         function toggleZoom() {
             if (!mediaTrack) return;
             const capabilities = mediaTrack.getCapabilities();
-            if (!capabilities.zoom) return;
+            if (!capabilities || !capabilities.zoom) { zoomBtn.style.display = 'none'; return; }
             const currentIndex = zoomLevels.indexOf(currentZoom);
             currentZoom = zoomLevels[(currentIndex + 1) % zoomLevels.length];
             if (currentZoom > capabilities.zoom.max) currentZoom = zoomLevels[0];
@@ -147,21 +87,18 @@
         function resetUI() {
             canvas.style.display = 'none';
             video.style.display = 'block';
-            outputPanel.innerHTML = `<div id="status-text" class="status-text">🚗 Aponte a câmera para um carro e capture.</div>`;
+            outputPanel.innerHTML = `<div id="status-text" class="status-text">🚗 Aponte a câmera e capture.</div>`;
             controlsDiv.style.display = 'flex';
             captureBtn.disabled = false;
         }
 
-        function addRetryButton(action) {
-            const existing = outputPanel.querySelector('.retry-button-bottom');
-            if (existing) return;
+        function addRetryButton(container) {
             const btn = document.createElement('button');
             btn.innerText = 'Identificar Outro Carro';
-            btn.className = 'retry-button-bottom';
             btn.style.marginTop = '15px';
             btn.style.width = '100%';
-            btn.addEventListener('click', action);
-            outputPanel.appendChild(btn);
+            btn.onclick = resetUI;
+            container.appendChild(btn);
         }
 
         async function captureAndIdentify() {
@@ -172,35 +109,20 @@
             video.style.display = 'none';
             canvas.style.display = 'block';
             controlsDiv.style.display = 'none';
-            outputPanel.innerHTML = `<div class="status-text">🧠 Analisando a imagem do carro...</div>`;
+            outputPanel.innerHTML = `<div class="status-text">🧠 Analisando a imagem...</div>`;
 
             try {
                 const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                
-                const prompt = `
-                    Identifique o modelo, a marca e o ano aproximado do carro nesta imagem.
-                    Forneça também algumas características principais sobre ele, como tipo de motor, potência e um fato interessante ou uma curiosidade.
-                    Se a imagem não contiver um carro, apenas informe isso de forma amigável.
-                    Responda em português do Brasil, formatado de maneira clara e com títulos para cada seção (Ex: **Marca:**, **Modelo:**, etc.).
-                `;
-                
-                // ========================================================================
-                // ATENÇÃO: SUBSTITUA O URL ABAIXO PELO URL DO SEU PROJETO NA VERCEL
-                // Exemplo: "https://meu-projeto-legal.vercel.app/api/identify-car"
-                // ========================================================================
-                const apiUrl = "https://car-identification.vercel.app/api/identify-car"; 
+                const apiUrl = "https://car-identification.vercel.app/api/identify-car"; // <-- NÃO ESQUEÇA DE TROCAR!
 
                 if (apiUrl.includes("seu-projeto.vercel.app")) {
-                    throw new Error("URL da API não foi configurada. Edite o arquivo index.html.");
+                    throw new Error("URL da API não foi configurada. Edite o arquivo HTML.");
                 }
 
                 const response = await fetch(apiUrl, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
-                        image: imageDataUrl,
-                        prompt: prompt 
-                    })
+                    body: JSON.stringify({ image: imageDataUrl })
                 });
 
                 if (!response.ok) {
@@ -208,14 +130,30 @@
                     throw new Error(err.error || `Erro na API: ${response.status}`);
                 }
 
+                // --- PROCESSAMENTO DA NOVA RESPOSTA ---
                 const data = await response.json();
+                
+                // Limpa o painel e cria a estrutura para os resultados
                 outputPanel.innerHTML = `<h2>✅ Análise do Veículo</h2><pre id="car-info">${data.resultado}</pre>`;
 
+                // Se a IA retornou um URL válido, cria o botão
+                if (data.url && data.url.startsWith('http')) {
+                    const linkButton = document.createElement('button');
+                    linkButton.innerText = 'Visitar Site do Modelo';
+                    linkButton.className = 'site-link'; // Adiciona uma classe para estilo
+                    linkButton.style.marginTop = '10px';
+                    linkButton.style.width = '100%';
+                    linkButton.onclick = () => window.open(data.url, '_blank');
+                    outputPanel.appendChild(linkButton);
+                }
+
+                // Adiciona o botão de tentar novamente
+                addRetryButton(outputPanel);
+
             } catch (err) {
-                console.error("Erro na requisição:", err);
-                outputPanel.innerHTML = `<div class="status-text">❌ Erro ao analisar a imagem:<br><small>${err.message}</small></div>`;
-            } finally {
-                addRetryButton(resetUI);
+                outputPanel.innerHTML = `<div class="status-text">❌ Erro ao analisar:<br><small>${err.message}</small></div>`;
+                addRetryButton(outputPanel);
+
             }
         }
 
