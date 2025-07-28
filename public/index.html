@@ -108,7 +108,7 @@
 
             try {
                 const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                const apiUrl = "https://car-identification.vercel.app/api/identify-car"; // <-- NÃO ESQUEÇA DE TROCAR!
+                const apiUrl = "https://seu-projeto.vercel.app/api/identify-car"; // <-- NÃO ESQUEÇA DE TROCAR!
 
                 if (apiUrl.includes("seu-projeto.vercel.app")) {
                     throw new Error("URL da API não foi configurada. Edite o arquivo HTML.");
@@ -138,7 +138,7 @@
                     whatsappButton.className = 'whatsapp-link';
                     whatsappButton.innerHTML = `💬 Consultar Estoque via WhatsApp`;
                     
-                    const mensagem = `Olá! Gostaria de saber se você tem o modelo ${data.modelo} disponível.`;
+                    const mensagem = `Olá! Gostaria de saber se você tem pra vender esse modelo de veículo ${data.modelo} disponível.`;
                     const whatsappUrl = `https://wa.me/5524998132856?text=${encodeURIComponent(mensagem)}`;
                     
                     whatsappButton.onclick = () => window.open(whatsappUrl, '_blank');
