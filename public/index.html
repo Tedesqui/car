@@ -32,7 +32,7 @@
         }
         #car-info { 
             background-color: #2a2a2a; padding: 1rem; border-radius: 6px; white-space: pre-wrap; 
-            word-wrap: break-word; line-height: 1.6; font-size: 1.2em; /* Mantido o tamanho dobrado */
+            word-wrap: break-word; line-height: 1.6; font-size: 1.2em;
         }
         .status-text { text-align: center; padding: 20px; font-size: 1.1em; font-weight: 500; }
         .actions-container { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
@@ -112,15 +112,17 @@
         async function captureAndIdentify() {
             captureBtn.disabled = true;
             
+            // --- NOVA ALTERAÇÃO: Variável de controle para o fluxo ---
+            let isImageSaved = false;
+            
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
-            const MAX_WIDTH = 800; // Imagem otimizada para análise rápida
+            const MAX_WIDTH = 800;
             const scale = MAX_WIDTH / video.videoWidth;
             tempCanvas.width = MAX_WIDTH;
             tempCanvas.height = video.videoHeight * scale;
             tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
             
-            // Mostra a imagem original em alta resolução no canvas principal
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -148,7 +150,7 @@
                 const data = await response.json();
 
                 if (data.resultado && data.resultado.toLowerCase().includes("nao posso identificar")) {
-                     throw new Error("A IA se recusou a analisar esta imagem devido às suas políticas de segurança. Tente uma imagem diferente ou com outro ângulo.");
+                     throw new Error("A IA se recusou a analisar esta imagem. Tente uma imagem diferente ou com outro ângulo.");
                 }
                 
                 outputPanel.innerHTML = `<h2>✅ Análise do Veículo</h2><pre id="car-info">${data.resultado}</pre>`;
@@ -156,34 +158,44 @@
                 const actionsContainer = document.createElement('div');
                 actionsContainer.className = 'actions-container';
 
-                // --- NOVA LÓGICA: Adiciona o botão de salvar imagem ---
                 const saveButton = document.createElement('button');
                 saveButton.innerHTML = '💾 Salvar Imagem do Veículo';
                 saveButton.onclick = () => {
-                    // Cria um link temporário para forçar o download da imagem do canvas
                     const link = document.createElement('a');
-                    // Usa o nome do modelo para o arquivo, se disponível
                     const fileName = data.modelo && !data.modelo.toLowerCase().includes("não") ? data.modelo.replace(/\s+/g, '_') : 'veiculo_identificado';
                     link.download = `${fileName}.png`;
-                    // Converte a imagem do canvas (em alta resolução) para um formato de dados
                     link.href = canvas.toDataURL('image/png');
                     link.click();
                     saveButton.innerText = '✔️ Imagem Salva!';
                     saveButton.disabled = true;
+                    // --- NOVA ALTERAÇÃO: Atualiza a variável de controle ---
+                    isImageSaved = true;
                 };
                 actionsContainer.appendChild(saveButton);
-                // --- FIM DA NOVA LÓGICA ---
 
                 if (data.modelo && !data.modelo.toLowerCase().includes("não")) {
                     const whatsappButton = document.createElement('button');
                     whatsappButton.className = 'whatsapp-link';
                     whatsappButton.innerHTML = `💬 Consultar via WhatsApp`;
                     
-                    // Mensagem ajustada para o novo fluxo
                     const mensagem = `Olá! Tenho interesse neste veículo: ${data.modelo}. Acabei de salvar a foto dele e vou te enviar em seguida para consulta.`;
                     const whatsappUrl = `https://wa.me/5524998132856?text=${encodeURIComponent(mensagem)}`;
                     
-                    whatsappButton.onclick = () => window.open(whatsappUrl, '_blank');
+                    // --- NOVA ALTERAÇÃO: Adiciona a verificação antes de abrir o WhatsApp ---
+                    whatsappButton.onclick = () => {
+                        if (isImageSaved) {
+                            window.open(whatsappUrl, '_blank');
+                        } else {
+                            // Cria um elemento de status temporário para o alerta
+                            let alertStatus = outputPanel.querySelector('.alert-status');
+                            if (!alertStatus) {
+                                alertStatus = document.createElement('div');
+                                alertStatus.className = 'status-text alert-status';
+                                actionsContainer.insertAdjacentElement('beforebegin', alertStatus);
+                            }
+                            alertStatus.innerHTML = `<span style="color: #ff4d4d;">🔴 Por favor, salve a imagem primeiro!</span>`;
+                        }
+                    };
                     actionsContainer.appendChild(whatsappButton);
                 }
                 
@@ -214,5 +226,3 @@
     </script>
 </body>
 </html>
-
-
