@@ -1,3 +1,14 @@
+Peço imensas desculpas! O erro foi meu. A maneira como eu apresentei o código na resposta anterior foi muito confusa, com comentários como // ... (código anterior) ..., o que provavelmente fez com que partes essenciais do seu script fossem apagadas ou não fossem copiadas.
+
+Quando funções essenciais como a startCamera deixam de existir, o script para imediatamente, e o resultado é a tela preta que você está vendo.
+
+Vamos corrigir isso agora. Preparei o código completo, juntando a versão que funcionava com a otimização de imagem que sugeri. Não há comentários ou partes faltando.
+
+Instrução: Por favor, apague todo o conteúdo do seu arquivo HTML e substitua por este código abaixo.
+
+Código Completo e Corrigido
+HTML
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -40,33 +51,91 @@
 </head>
 <body>
     <video id="video" autoplay playsinline muted></video>
-    <canvas id="canvas"></canvas> <div id="ui-container">
+    <canvas id="canvas"></canvas>
+    <div id="ui-container">
+        <div id="controls">
+            <button id="zoomBtn">🔍 Zoom: 1x</button>
+            <button id="captureBtn">📷 Identificar Carro</button>
         </div>
+        <div id="output-panel">
+            <div id="status-text" class="status-text">Iniciando câmera...</div>
+        </div>
+    </div>
 
     <script>
-        // ... (suas constantes e funções startCamera, toggleZoom, resetUI) ...
-        // COLE O CONTEÚDO DO SCRIPT ATÉ AQUI
+        // --- SEÇÃO DE CONSTANTES ---
+        const video = document.getElementById("video");
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        const outputPanel = document.getElementById("output-panel");
+        const controlsDiv = document.getElementById("controls");
+        const zoomBtn = document.getElementById("zoomBtn");
+        const captureBtn = document.getElementById("captureBtn");
+        let mediaTrack, currentZoom = 1;
+        const zoomLevels = [1, 1.5, 2, 3];
 
+        // --- SEÇÃO DE FUNÇÕES ---
+        async function startCamera() {
+            try {
+                const constraints = { video: { facingMode: "environment" } };
+                
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error("A API da câmera não é suportada neste navegador ou a página não está em um ambiente seguro (HTTPS).");
+                }
+
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                mediaTrack = stream.getVideoTracks()[0];
+                document.getElementById('status-text').innerText = '🚗 Aponte a câmera para um carro e capture.';
+            } catch (err) {
+                let errorMessage = '❌ Erro desconhecido ao acessar a câmera.';
+                if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+                    errorMessage = "🚫 Você precisa permitir o acesso à câmera no seu navegador.";
+                } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+                    errorMessage = "🤔 Nenhuma câmera foi encontrada no seu dispositivo.";
+                } else if (err.name === "NotReadableError" || err.name === "TrackStartError") {
+                    errorMessage = "⚙️ Sua câmera pode já estar em uso por outro aplicativo.";
+                }
+                console.error("Erro da câmera:", err);
+                outputPanel.innerHTML = `<div class="status-text">${errorMessage}<br><small>${err.message}</small></div>`;
+            }
+        }
+
+        function toggleZoom() {
+            if (!mediaTrack) return;
+            const capabilities = mediaTrack.getCapabilities();
+            if (!capabilities || !capabilities.zoom) { zoomBtn.style.display = 'none'; return; }
+            const currentIndex = zoomLevels.indexOf(currentZoom);
+            currentZoom = zoomLevels[(currentIndex + 1) % zoomLevels.length];
+            if (currentZoom > capabilities.zoom.max) currentZoom = zoomLevels[0];
+            mediaTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] });
+            zoomBtn.innerText = `🔍 Zoom: ${currentZoom}x`;
+        }
+
+        function resetUI() {
+            canvas.style.display = 'none';
+            video.style.display = 'block';
+            outputPanel.innerHTML = `<div id="status-text" class="status-text">🚗 Aponte a câmera e capture.</div>`;
+            controlsDiv.style.display = 'flex';
+            captureBtn.disabled = false;
+        }
+        
         async function captureAndIdentify() {
             captureBtn.disabled = true;
             
-            // --- OTIMIZAÇÃO: Redimensionar a imagem antes de enviar ---
+            // Otimização: Redimensiona a imagem para análise ser mais rápida
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
-            
-            // Define uma largura máxima para a imagem, mantendo a proporção
             const MAX_WIDTH = 1280;
             const scale = MAX_WIDTH / video.videoWidth;
             tempCanvas.width = MAX_WIDTH;
             tempCanvas.height = video.videoHeight * scale;
-
-            // Desenha a imagem do vídeo no canvas temporário com o novo tamanho
             tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
             
-            // Exibe a imagem capturada no canvas principal na tela
-            canvas.width = tempCanvas.width;
-            canvas.height = tempCanvas.height;
-            ctx.drawImage(tempCanvas, 0, 0);
+            // Exibe a imagem capturada no canvas principal da tela
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
             video.style.display = 'none';
             canvas.style.display = 'block';
@@ -74,11 +143,9 @@
             outputPanel.innerHTML = `<div class="status-text">🧠 Analisando a imagem...</div>`;
 
             try {
-                // Envia a imagem redimensionada e com qualidade um pouco menor
+                // Envia a imagem redimensionada do canvas temporário
                 const imageDataUrl = tempCanvas.toDataURL('image/jpeg', 0.85);
-                const apiUrl = "https://car-identification.vercel.app/api/identify-car";
-
-                // ... (o resto da sua função captureAndIdentify permanece igual) ...
+                const apiUrl = "https://car-identification.vercel.app/api/identify-car"; 
 
                 if (apiUrl.includes("seu-projeto.vercel.app")) {
                     throw new Error("URL da API não foi configurada. Edite o arquivo HTML.");
@@ -122,8 +189,7 @@
                 outputPanel.appendChild(actionsContainer);
 
             } catch (err) {
-                // ... (seu bloco catch permanece igual) ...
-                 outputPanel.innerHTML = `<div class="status-text">❌ Erro ao analisar:<br><small>${err.message}</small></div>`;
+                outputPanel.innerHTML = `<div class="status-text">❌ Erro ao analisar:<br><small>${err.message}</small></div>`;
                 const retryContainer = document.createElement('div');
                 retryContainer.className = 'actions-container';
                 const retryButton = document.createElement('button');
@@ -134,7 +200,12 @@
             }
         }
 
-        // ... (seus addEventListeners e a chamada startCamera() final) ...
+        // --- SEÇÃO DE EVENTOS E INICIALIZAÇÃO ---
+        zoomBtn.addEventListener('click', toggleZoom);
+        captureBtn.addEventListener('click', captureAndIdentify);
+        
+        // Inicia a câmera assim que o script é carregado
+        startCamera();
     </script>
 </body>
 </html>
