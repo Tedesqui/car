@@ -112,16 +112,15 @@
         async function captureAndIdentify() {
             captureBtn.disabled = true;
             
-            // Otimização: Redimensiona a imagem para análise ser mais rápida
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
-            const MAX_WIDTH = 1280;
+            const MAX_WIDTH = 800; // Imagem otimizada para análise rápida
             const scale = MAX_WIDTH / video.videoWidth;
             tempCanvas.width = MAX_WIDTH;
             tempCanvas.height = video.videoHeight * scale;
             tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
             
-            // Exibe a imagem capturada no canvas principal da tela
+            // Mostra a imagem original em alta resolução no canvas principal
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -129,16 +128,12 @@
             video.style.display = 'none';
             canvas.style.display = 'block';
             controlsDiv.style.display = 'none';
-            outputPanel.innerHTML = `<div class="status-text">🧠 Analisando a imagem...</div>`;
+            outputPanel.innerHTML = `<div class="status-text">🧠 Analisando imagem...</div>`;
 
             try {
-                // Envia a imagem redimensionada do canvas temporário
-                const imageDataUrl = tempCanvas.toDataURL('image/jpeg', 0.85);
+                // Envia a imagem pequena e otimizada
+                const imageDataUrl = tempCanvas.toDataURL('image/jpeg', 0.8);
                 const apiUrl = "https://car-identification.vercel.app/api/identify-car"; 
-
-                if (apiUrl.includes("seu-projeto.vercel.app")) {
-                    throw new Error("URL da API não foi configurada. Edite o arquivo HTML.");
-                }
 
                 const response = await fetch(apiUrl, {
                     method: "POST",
@@ -152,18 +147,24 @@
                 }
                 
                 const data = await response.json();
+
+                // VERIFICA SE A IA SE RECUSOU A RESPONDER
+                if (data.resultado && data.resultado.toLowerCase().includes("nao posso identificar")) {
+                     throw new Error("A IA se recusou a analisar esta imagem devido às suas políticas de segurança. Tente uma imagem diferente ou com outro ângulo.");
+                }
                 
                 outputPanel.innerHTML = `<h2>✅ Análise do Veículo</h2><pre id="car-info">${data.resultado}</pre>`;
                 
                 const actionsContainer = document.createElement('div');
                 actionsContainer.className = 'actions-container';
 
-                if (data.modelo) {
+                // VERIFICA SE O MODELO FOI EXTRAÍDO COM SUCESSO
+                if (data.modelo && !data.modelo.toLowerCase().includes("não")) {
                     const whatsappButton = document.createElement('button');
                     whatsappButton.className = 'whatsapp-link';
                     whatsappButton.innerHTML = `💬 Consultar Estoque via WhatsApp`;
                     
-                    const mensagem = `Olá! Gostaria de saber se você tem pra vender esse modelo de veículo. ${data.modelo} disponível.`;
+                    const mensagem = `Olá! Tenho interesse neste veículo, poderia me confirmar a disponibilidade? Modelo: ${data.modelo}.`;
                     const whatsappUrl = `https://wa.me/5524998132856?text=${encodeURIComponent(mensagem)}`;
                     
                     whatsappButton.onclick = () => window.open(whatsappUrl, '_blank');
@@ -193,9 +194,8 @@
         zoomBtn.addEventListener('click', toggleZoom);
         captureBtn.addEventListener('click', captureAndIdentify);
         
-        // Inicia a câmera assim que o script é carregado
+        // Inicia a câmera assim que a página é carregada
         startCamera();
     </script>
 </body>
 </html>
-
