@@ -138,7 +138,7 @@
                     whatsappButton.className = 'whatsapp-link';
                     whatsappButton.innerHTML = `💬 Consultar Estoque via WhatsApp`;
                     
-                    const mensagem = `Olá! Gostaria de saber se você tem pra vender esse modelo de veículo ${data.modelo} disponível.`;
+                    const mensagem = `Olá! Gostaria de saber se você tem pra vender esse modelo de veículo. ${data.modelo} disponível.`;
                     const whatsappUrl = `https://wa.me/5524998132856?text=${encodeURIComponent(mensagem)}`;
                     
                     whatsappButton.onclick = () => window.open(whatsappUrl, '_blank');
