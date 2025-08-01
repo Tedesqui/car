@@ -21,21 +21,17 @@ const allowCors = fn => async (req, res) => {
 
 // A função principal que será executada pela Vercel
 async function handler(req, res) {
-  // Garante que a requisição é do tipo POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método não permitido. Use POST.' });
   }
 
   try {
-    // 1. Recebe a imagem enviada pelo frontend
     const { image } = req.body;
     if (!image) {
       return res.status(400).json({ error: 'Nenhuma imagem fornecida.' });
     }
 
-    // 2. Chama a API da OpenAI para analisar a imagem
     const response = await openai.chat.completions.create({
-      // Usamos o gpt-4o, que é o modelo mais rápido e eficiente para visão
       model: 'gpt-4o',
       messages: [
         {
@@ -43,7 +39,6 @@ async function handler(req, res) {
           content: [
             {
               type: 'text',
-              // Instrução detalhada para a IA
               text: `
                 Você é um especialista em automóveis. Analise a imagem deste carro e me forneça as seguintes informações em um formato JSON válido:
                 1. No campo "modelo", coloque o nome da marca, modelo e geração do carro (ex: "Honda Civic G10", "Volkswagen Gol G5", "Fiat Uno Mille").
@@ -54,49 +49,50 @@ async function handler(req, res) {
                    - Faixa de preço aproximada no mercado de usados brasileiro (em Reais).
                 
                 Responda APENAS com o objeto JSON, sem nenhum texto antes ou depois.
-                Exemplo de como a resposta deve ser:
-                {
-                  "modelo": "Toyota Corolla XEi 2.0 2023",
-                  "resultado": "Marca: Toyota\\nModelo: Corolla XEi 2.0\\nAno Estimado: 2022-2023\\n\\nCaracterísticas: Este é um dos sedans mais vendidos do mundo, conhecido por sua confiabilidade e conforto..."
-                }
               `,
             },
             {
               type: 'image_url',
               image_url: {
-                // A imagem em base64 recebida do frontend
                 url: image,
-                detail: 'low', // Usar 'low' torna a análise mais rápida e barata
+                detail: 'low',
               },
             },
           ],
         },
       ],
-      // Define um número máximo de "tokens" para a resposta para evitar custos inesperados
       max_tokens: 800,
     });
 
-    // 3. Processa e envia a resposta de volta para a página
     const aiResponseContent = response.choices[0].message.content;
 
-    // Tenta converter a resposta da IA (que é uma string) em um objeto JSON real
+    // --- NOVA LÓGICA DE LIMPEZA E EXTRAÇÃO DO JSON ---
+    let jsonString = aiResponseContent;
+    const jsonStartIndex = jsonString.indexOf('{');
+    const jsonEndIndex = jsonString.lastIndexOf('}');
+
+    // Extrai a string que parece ser o JSON, mesmo que haja texto antes ou depois
+    if (jsonStartIndex !== -1 && jsonEndIndex !== -1 && jsonEndIndex > jsonStartIndex) {
+        jsonString = jsonString.substring(jsonStartIndex, jsonEndIndex + 1);
+    }
+    // --- FIM DA NOVA LÓGICA ---
+
     try {
-      const parsedResponse = JSON.parse(aiResponseContent);
+      // Tenta fazer o parse da string já limpa
+      const parsedResponse = JSON.parse(jsonString);
       return res.status(200).json(parsedResponse);
     } catch (parseError) {
-      // Se a IA não retornar um JSON válido, retorna a resposta como texto simples
-      console.error("Erro ao fazer o parse do JSON da IA:", parseError);
+      // Se mesmo após a limpeza o JSON for inválido, usa o fallback
+      console.error("Erro ao fazer o parse do JSON da IA mesmo após limpeza:", parseError);
+      console.error("String que falhou:", jsonString); // Loga a string problemática para depuração
       return res.status(200).json({
-        modelo: "Não identificado",
-        resultado: aiResponseContent, // Envia o texto bruto que a IA retornou
+        modelo: "Não foi possível extrair o modelo", // Mensagem de erro mais clara
+        resultado: aiResponseContent, 
       });
     }
 
   } catch (error) {
-    // 4. Tratamento de erros
     console.error('Erro na chamada da API da OpenAI:', error);
-    // NOTA: Se o erro de timeout da Vercel (TASK_TIMED_OUT) continuar,
-    // a solução mais robusta é migrar para streaming ou usar um plano pago da Vercel com timeouts maiores.
     return res.status(500).json({ 
       error: 'Falha ao se comunicar com a IA ou processar a resposta.' 
     });
