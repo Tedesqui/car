@@ -108,7 +108,7 @@
 
             try {
                 const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                const apiUrl = "https://seu-projeto.vercel.app/api/identify-car"; // <-- NÃO ESQUEÇA DE TROCAR!
+                const apiUrl = "https://car-identification.vercel.app/api/identify-car"; // <-- NÃO ESQUEÇA DE TROCAR!
 
                 if (apiUrl.includes("seu-projeto.vercel.app")) {
                     throw new Error("URL da API não foi configurada. Edite o arquivo HTML.");
@@ -173,3 +173,4 @@
     </script>
 </body>
 </html>
+
