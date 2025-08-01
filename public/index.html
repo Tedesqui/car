@@ -32,7 +32,7 @@
         }
         #car-info { 
             background-color: #2a2a2a; padding: 1rem; border-radius: 6px; white-space: pre-wrap; 
-            word-wrap: break-word; line-height: 1.6; font-size: 3.0em;
+            word-wrap: break-word; line-height: 1.6; font-size: 1.8em; /* Mantido o tamanho dobrado */
         }
         .status-text { text-align: center; padding: 20px; font-size: 1.1em; font-weight: 500; }
         .actions-container { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
@@ -131,7 +131,6 @@
             outputPanel.innerHTML = `<div class="status-text">🧠 Analisando imagem...</div>`;
 
             try {
-                // Envia a imagem pequena e otimizada
                 const imageDataUrl = tempCanvas.toDataURL('image/jpeg', 0.8);
                 const apiUrl = "https://car-identification.vercel.app/api/identify-car"; 
 
@@ -148,7 +147,6 @@
                 
                 const data = await response.json();
 
-                // VERIFICA SE A IA SE RECUSOU A RESPONDER
                 if (data.resultado && data.resultado.toLowerCase().includes("nao posso identificar")) {
                      throw new Error("A IA se recusou a analisar esta imagem devido às suas políticas de segurança. Tente uma imagem diferente ou com outro ângulo.");
                 }
@@ -158,13 +156,31 @@
                 const actionsContainer = document.createElement('div');
                 actionsContainer.className = 'actions-container';
 
-                // VERIFICA SE O MODELO FOI EXTRAÍDO COM SUCESSO
+                // --- NOVA LÓGICA: Adiciona o botão de salvar imagem ---
+                const saveButton = document.createElement('button');
+                saveButton.innerHTML = '💾 Salvar Imagem do Veículo';
+                saveButton.onclick = () => {
+                    // Cria um link temporário para forçar o download da imagem do canvas
+                    const link = document.createElement('a');
+                    // Usa o nome do modelo para o arquivo, se disponível
+                    const fileName = data.modelo && !data.modelo.toLowerCase().includes("não") ? data.modelo.replace(/\s+/g, '_') : 'veiculo_identificado';
+                    link.download = `${fileName}.png`;
+                    // Converte a imagem do canvas (em alta resolução) para um formato de dados
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    saveButton.innerText = '✔️ Imagem Salva!';
+                    saveButton.disabled = true;
+                };
+                actionsContainer.appendChild(saveButton);
+                // --- FIM DA NOVA LÓGICA ---
+
                 if (data.modelo && !data.modelo.toLowerCase().includes("não")) {
                     const whatsappButton = document.createElement('button');
                     whatsappButton.className = 'whatsapp-link';
-                    whatsappButton.innerHTML = `💬 Consultar Estoque via WhatsApp`;
+                    whatsappButton.innerHTML = `💬 Consultar via WhatsApp`;
                     
-                    const mensagem = `Olá! Tenho interesse neste veículo, poderia me confirmar a disponibilidade? Modelo: ${data.modelo}.`;
+                    // Mensagem ajustada para o novo fluxo
+                    const mensagem = `Olá! Tenho interesse neste veículo: ${data.modelo}. Acabei de salvar a foto dele e vou te enviar em seguida para consulta.`;
                     const whatsappUrl = `https://wa.me/5524998132856?text=${encodeURIComponent(mensagem)}`;
                     
                     whatsappButton.onclick = () => window.open(whatsappUrl, '_blank');
@@ -194,10 +210,7 @@
         zoomBtn.addEventListener('click', toggleZoom);
         captureBtn.addEventListener('click', captureAndIdentify);
         
-        // Inicia a câmera assim que a página é carregada
         startCamera();
     </script>
 </body>
 </html>
-
-
